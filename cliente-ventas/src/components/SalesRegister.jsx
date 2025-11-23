@@ -69,7 +69,7 @@ const SalesRegister = () => {
           cliente: clienteSeleccionado, 
           total: total,
           detalles: carrito.map(p => ({
-              producto_id: p.codigo, // CORRECCIÓN: Enviamos el codigo como ID del producto
+              producto_id: p.codigo,
               cantidad: p.cantidad,
               precio_unitario: p.precio
           }))
