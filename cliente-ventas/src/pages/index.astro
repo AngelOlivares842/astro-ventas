@@ -3,13 +3,13 @@ import Layout from '../layouts/Layout.astro';
 import LoginForm from '../components/Loginform.jsx';
 ---
 
-<Layout title="Acceso - Nexus ERP">
-  <main className="min-h-screen w-full flex items-center justify-center bg-[#050505] relative overflow-hidden">
+<Layout title="Acceso - VENTAS ZENS">
+  <main class="min-h-screen w-full flex items-start justify-center pt-40 bg-[#050505] relative overflow-hidden">
     
-    <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-neon-blue/10 rounded-full blur-[120px] pointer-events-none"></div>
-    <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-neon-purple/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-neon-blue/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-neon-purple/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-    <div className="z-10 w-full px-4">
+    <div class="z-10 w-full px-4"> 
         <LoginForm client:load />
     </div>
 
