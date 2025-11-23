@@ -16,6 +16,11 @@ const SalesRegister = () => {
                 api.get('/productos/'),
                 api.get('/clientes/')
             ]);
+            
+            // Verificamos los datos en consola para depurar
+            console.log("Productos cargados:", prodRes.data);
+            console.log("Clientes cargados:", cliRes.data);
+
             setProductos(Array.isArray(prodRes.data) ? prodRes.data : prodRes.data.results || []);
             setClientes(Array.isArray(cliRes.data) ? cliRes.data : cliRes.data.results || []);
         } catch (e) { 
@@ -28,30 +33,32 @@ const SalesRegister = () => {
   }, []);
 
   const addToCart = (producto) => {
-      // CORRECCIÓN: Usamos 'codigo' en lugar de 'id'
-      if (!producto.codigo) {
-          alert("Error: El producto no tiene el campo 'codigo'.");
+      // Usamos 'codigo' si existe, si no 'id'
+      const prodId = producto.codigo || producto.id;
+      
+      if (!prodId) {
+          alert("Error: El producto no tiene código ni ID.");
           return;
       }
 
-      const existing = carrito.find(item => item.codigo === producto.codigo);
+      const existing = carrito.find(item => (item.codigo || item.id) === prodId);
 
       if (existing) {
           setCarrito(carrito.map(item => 
-              item.codigo === producto.codigo ? {...item, cantidad: item.cantidad + 1} : item
+              (item.codigo || item.id) === prodId ? {...item, cantidad: item.cantidad + 1} : item
           ));
       } else {
           setCarrito([...carrito, { ...producto, cantidad: 1 }]);
       }
   };
 
-  const removeFromCart = (codigo) => {
-      setCarrito(carrito.filter(item => item.codigo !== codigo));
+  const removeFromCart = (prodId) => {
+      setCarrito(carrito.filter(item => (item.codigo || item.id) !== prodId));
   };
 
-  const updateQuantity = (codigo, delta) => {
+  const updateQuantity = (prodId, delta) => {
       setCarrito(carrito.map(item => {
-          if (item.codigo === codigo) {
+          if ((item.codigo || item.id) === prodId) {
               const newCant = Math.max(1, item.cantidad + delta);
               return { ...item, cantidad: newCant };
           }
@@ -61,28 +68,53 @@ const SalesRegister = () => {
 
   const total = carrito.reduce((acc, item) => acc + (parseFloat(item.precio) * item.cantidad), 0);
 
+  // --- FUNCIÓN CORREGIDA ---
   const handleFinalizarVenta = async () => {
       if (!clienteSeleccionado) return alert("Selecciona un cliente");
       if (carrito.length === 0) return alert("El carrito está vacío");
       
+      console.log("Buscando cliente seleccionado:", clienteSeleccionado);
+      console.log("En la lista de clientes:", clientes);
+
+      // CORRECCIÓN: Buscamos de forma segura. 
+      // Si el cliente tiene id, usamos id. Si tiene rut, usamos rut.
+      const clienteObj = clientes.find(c => {
+          const identificador = c.id || c.rut || c.run || c.pk; // Intenta todas las opciones
+          return identificador && identificador.toString() === clienteSeleccionado.toString();
+      });
+
+      if (!clienteObj) {
+          alert("Error crítico: No se encontraron los datos del cliente seleccionado en la memoria.");
+          return;
+      }
+
+      // Preparar el Payload según tu base de datos
       const payload = {
-          cliente: clienteSeleccionado, 
+          cliente_rut: clienteObj.rut || clienteObj.run || "SIN-RUT",
+          cliente_nombre: clienteObj.nombre || clienteObj.nombres || "Cliente Desconocido",
           total: total,
           detalles: carrito.map(p => ({
-              producto_id: p.codigo,
+              producto_id: p.id || p.pk, // IMPORTANTE: Aquí debe ir el ID numérico de la DB, no el código de barras
               cantidad: p.cantidad,
-              precio_unitario: p.precio
+              precio_unitario: p.precio,
+              subtotal: p.precio * p.cantidad
           }))
       };
 
+      console.log("Payload a enviar:", payload);
+
       try {
           await api.post('/ventas/', payload);
-          alert("¡Venta registrada exitosamente!");
+          alert("¡Venta registrada exitosamente! 🚀");
           setCarrito([]);
           setClienteSeleccionado('');
       } catch (e) {
           console.error(e);
-          alert("Error al registrar venta. Revisa la consola.");
+          if (e.response && e.response.data) {
+              alert(`Error del servidor: ${JSON.stringify(e.response.data, null, 2)}`);
+          } else {
+              alert("Error de conexión. Revisa la consola.");
+          }
       }
   };
 
@@ -98,9 +130,9 @@ const SalesRegister = () => {
             </h2>
             <div className="bg-cyber-dark border border-white/5 rounded-xl p-4 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {productos.map((prod) => (
+                    {productos.map((prod, i) => (
                         <button 
-                            key={prod.codigo} // CORRECCIÓN: Key es el codigo
+                            key={i} 
                             onClick={() => addToCart(prod)}
                             className="bg-cyber-gray p-4 rounded-lg border border-white/5 hover:border-neon-blue hover:shadow-neon text-left transition-all group flex flex-col justify-between"
                         >
@@ -126,13 +158,22 @@ const SalesRegister = () => {
 
             <div className="mb-4">
                 <label className="text-xs text-gray-400 uppercase mb-1 block">Cliente</label>
+                {/* CORRECCIÓN EN EL SELECT */}
                 <select 
                     className="w-full bg-black/30 border border-white/10 rounded p-2 text-white focus:border-neon-purple outline-none"
                     value={clienteSeleccionado}
                     onChange={(e) => setClienteSeleccionado(e.target.value)}
                 >
                     <option value="">-- Seleccionar Cliente --</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    {clientes.map((c, index) => {
+                        // Determinamos qué usar como valor único (ID, PK o RUT)
+                        const valorUnico = c.id || c.rut || c.run || c.pk || index;
+                        return (
+                            <option key={valorUnico} value={valorUnico}>
+                                {c.nombre} {c.rut ? `(${c.rut})` : ''}
+                            </option>
+                        );
+                    })}
                 </select>
             </div>
 
@@ -143,20 +184,20 @@ const SalesRegister = () => {
                         <p className="italic text-sm">Carrito vacío</p>
                     </div>
                 ) : (
-                    carrito.map((item) => (
-                        <div key={item.codigo} className="flex justify-between items-center bg-white/5 p-3 rounded border border-white/5 hover:bg-white/10 transition-colors">
+                    carrito.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white/5 p-3 rounded border border-white/5 hover:bg-white/10 transition-colors">
                             <div className="overflow-hidden">
                                 <div className="text-sm text-white font-medium truncate w-32">{item.nombre}</div>
                                 <div className="text-xs text-neon-purple font-mono">
-                                    ${item.precio} x {item.cantidad} = ${(item.precio * item.cantidad).toFixed(2)}
+                                    ${item.precio} x {item.cantidad}
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1">
-                                <button onClick={() => updateQuantity(item.codigo, -1)} className="p-1 hover:text-white text-gray-400 hover:bg-white/10 rounded"><Minus size={14}/></button>
+                                <button onClick={() => updateQuantity(item.codigo || item.id, -1)} className="p-1 hover:text-white text-gray-400 hover:bg-white/10 rounded"><Minus size={14}/></button>
                                 <span className="text-sm font-bold w-4 text-center">{item.cantidad}</span>
-                                <button onClick={() => updateQuantity(item.codigo, 1)} className="p-1 hover:text-white text-gray-400 hover:bg-white/10 rounded"><Plus size={14}/></button>
+                                <button onClick={() => updateQuantity(item.codigo || item.id, 1)} className="p-1 hover:text-white text-gray-400 hover:bg-white/10 rounded"><Plus size={14}/></button>
                             </div>
-                            <button onClick={() => removeFromCart(item.codigo)} className="ml-2 text-gray-500 hover:text-red-500 transition-colors"><X size={16}/></button>
+                            <button onClick={() => removeFromCart(item.codigo || item.id)} className="ml-2 text-gray-500 hover:text-red-500 transition-colors"><X size={16}/></button>
                         </div>
                     ))
                 )}
