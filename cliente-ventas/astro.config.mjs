@@ -5,6 +5,6 @@ import vercel from '@astrojs/vercel';
 
 export default defineConfig({
   integrations: [react(), tailwind()],
-  output: 'static', // O 'server' si necesitas SSR, pero 'static' va bien para este dashboard SPA
+  output: 'server', // O 'server' si necesitas SSR, pero 'static' va bien para este dashboard SPA
   adapter: vercel()
 });
