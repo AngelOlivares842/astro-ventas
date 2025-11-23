@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #050505;
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif; /* O una fuente como Rajdhani o Orbitron */
+}
+
+/* Scrollbar futurista */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a12;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00f3ff;
+}
+/* ... tu contenido anterior ... */
+
+/* Forzar inputs oscuros incluso con Autocompletar de Chrome/Edge */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #050505 inset !important; /* Color de fondo negro */
+    -webkit-text-fill-color: white !important; /* Texto blanco */
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: white;
+}
