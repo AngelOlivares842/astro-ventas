@@ -1,45 +1,21 @@
-import axios from 'axios';
-import Cookies from 'js-cookie';
+import { defineMiddleware } from "astro:middleware";
 
-const API_URL = 'https://ventas-produccion-1f4baea70467.herokuapp.com/api';
+// Astro BUSCA específicamente esta exportación llamada "onRequest"
+export const onRequest = defineMiddleware((context, next) => {
+  const { cookies, url, redirect } = context;
+  
+  // Verificamos si existe la cookie
+  const token = cookies.get("access_token")?.value;
 
-const api = axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
-});
-
-// Interceptor de Petición (Envía el token)
-api.interceptors.request.use((config) => {
-  const token = Cookies.get('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // REGLA 1: Si intenta entrar al panel sin token -> Lo manda al Login
+  if (url.pathname.startsWith("/panel") && !token) {
+    return redirect("/");
   }
-  return config;
-});
 
-// --- NUEVO: Interceptor de Respuesta (Maneja la expulsión) ---
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Si la API dice "401 Unauthorized" (Token inválido o expirado)
-    if (error.response && error.response.status === 401) {
-      // 1. Borramos la cookie
-      Cookies.remove('access_token');
-      // 2. Redirigimos al usuario al login forzosamente
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-    }
-    return Promise.reject(error);
+  // REGLA 2: Si intenta entrar al Login teniendo token -> Lo manda al Panel
+  if (url.pathname === "/" && token) {
+     return redirect("/panel");
   }
-);
 
-// ... (tus funciones login, getProductos, etc. siguen igual) ...
-
-// Agregamos una función explícita para cerrar sesión
-export const logout = () => {
-    Cookies.remove('access_token');
-    window.location.href = '/';
-};
-
-export default api; // y tus exportaciones...
+  return next();
+});
