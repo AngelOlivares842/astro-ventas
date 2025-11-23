@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, Package, Users, ShoppingCart, LogOut } from 'lucide-react';
+import { logout } from '../lib/api'; // <--- Importamos la función de cierre de sesión
 
 const Sidebar = ({ currentView, setView }) => {
   const menuItems = [
@@ -8,6 +9,14 @@ const Sidebar = ({ currentView, setView }) => {
     { id: 'clientes', icon: Users, label: 'Clientes' },
     { id: 'ventas', icon: ShoppingCart, label: 'Registrar Venta' },
   ];
+
+  // Función para manejar la salida segura
+  const handleLogout = () => {
+    // Confirmación simple del navegador
+    if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
+        logout(); // Esto borra la cookie y redirige al login
+    }
+  };
 
   return (
     <aside className="w-64 h-screen bg-cyber-dark border-r border-white/10 flex flex-col fixed left-0 top-0 z-50 backdrop-blur-md">
@@ -35,7 +44,11 @@ const Sidebar = ({ currentView, setView }) => {
       </nav>
 
       <div className="p-4 border-t border-white/10">
-        <button onClick={() => window.location.href = '/'} className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors">
+        {/* Aquí conectamos la función handleLogout */}
+        <button 
+            onClick={handleLogout} 
+            className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors w-full p-2 hover:bg-white/5 rounded-lg"
+        >
             <LogOut size={20} /> Salir
         </button>
       </div>

@@ -10,7 +10,8 @@ const api = axios.create({
   },
 });
 
-// Interceptor para inyectar el token en cada petición
+// --- Interceptor de Solicitud (REQUEST) ---
+// Inyecta el token en cada petición saliente
 api.interceptors.request.use((config) => {
   const token = Cookies.get('access_token');
   if (token) {
@@ -19,20 +20,49 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Funciones de servicio
+// --- Interceptor de Respuesta (RESPONSE) ---
+// Vigila si el token expiró o es inválido
+api.interceptors.response.use(
+  (response) => response, // Si todo sale bien, pasa la respuesta
+  (error) => {
+    // Si la API responde con error 401 (No Autorizado)
+    if (error.response && error.response.status === 401) {
+      logout(); // Ejecutamos la expulsión del usuario
+    }
+    return Promise.reject(error);
+  }
+);
+
+// --- Funciones de Autenticación ---
+
 export const login = async (username, password) => {
-    // Ajusta la ruta según tu endpoint real de token (ej: /token/ o /login/)
-    // Asumiré que usas SimpleJWT o similar. Si no tienes endpoint de token, avísame.
+    // Ajusta la ruta si tu backend usa '/login/' en vez de '/token/'
     const { data } = await api.post('/token/', { username, password }); 
-    Cookies.set('access_token', data.access, { expires: 1 }); // Expira en 1 día
+    Cookies.set('access_token', data.access, { expires: 1 }); // Guarda cookie por 1 día
     return data;
 };
 
+// Función para cerrar sesión (Borra cookie y redirige)
+export const logout = () => {
+    Cookies.remove('access_token');
+    if (typeof window !== 'undefined') {
+        window.location.href = '/'; // Redirección forzada al Login
+    }
+};
+
+// --- Funciones de Datos (Endpoints) ---
+
+// Productos
 export const getProductos = () => api.get('/productos/');
 export const deleteProducto = (id) => api.delete(`/productos/${id}/`);
 export const saveProducto = (data, id = null) => id ? api.put(`/productos/${id}/`, data) : api.post('/productos/', data);
 
+// Ventas
 export const getVentas = () => api.get('/ventas/');
-// ... Agrega aquí funciones para clientes y ventas según necesites
+// Si necesitas crear venta: export const saveVenta = (data) => api.post('/ventas/', data);
+
+// Clientes (Necesarios para el ClientsManager)
+export const getClientes = () => api.get('/clientes/');
+export const deleteCliente = (id) => api.delete(`/clientes/${id}/`);
 
 export default api;
