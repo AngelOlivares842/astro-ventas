@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import DashboardStats from './DashboardStats';
 import ProductsManager from './ProductsManager';
-import ClientsManager from './ClientsManager'; // Importar
-import SalesRegister from './SalesRegister';   // Importar
+import ClientsManager from './ClientsManager';
+import SalesRegister from './SalesRegister';
 
 const AppLayout = () => {
   const [view, setView] = useState('dashboard');
@@ -13,8 +13,8 @@ const AppLayout = () => {
     switch(view) {
       case 'dashboard': return <DashboardStats />;
       case 'productos': return <ProductsManager />;
-      case 'clientes':  return <ClientsManager />; // Conectado
-      case 'ventas':    return <SalesRegister />;  // Conectado
+      case 'clientes':  return <ClientsManager />;
+      case 'ventas':    return <SalesRegister />;
       default: return <DashboardStats />;
     }
   };

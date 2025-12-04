@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import api from '../lib/api'; // Asumiendo que exportas api por defecto
-import { Users, Mail, Phone, Trash2, Plus, Search } from 'lucide-react';
+import { getClientes, deleteCliente, saveCliente } from '../lib/api';
+import { Users, Mail, Phone, Trash2, Plus, Search, X, Save, UserPlus } from 'lucide-react';
 
 const ClientsManager = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Estado del Modal
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    rut: '', // Importante para tu DB
+    email: '',
+    telefono: ''
+  });
 
-  // Cargar clientes
   useEffect(() => {
     fetchClientes();
   }, []);
 
   const fetchClientes = async () => {
     try {
-        // Ajusta '/clientes/' según tu API exacta
-        const { data } = await api.get('/clientes/'); 
+        const { data } = await getClientes();
         setClientes(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
         console.error(err);
@@ -27,26 +34,43 @@ const ClientsManager = () => {
   const handleDelete = async (id) => {
       if(!confirm("¿Eliminar cliente?")) return;
       try {
-          await api.delete(`/clientes/${id}/`);
+          await deleteCliente(id);
           fetchClientes();
       } catch(e) { alert("Error al eliminar"); }
   };
 
+  const handleSave = async (e) => {
+      e.preventDefault();
+      try {
+          // Ajusta 'rut' a 'run' si tu API lo pide así
+          await saveCliente(formData);
+          alert("Cliente registrado correctamente");
+          setShowModal(false);
+          setFormData({ nombre: '', rut: '', email: '', telefono: '' });
+          fetchClientes();
+      } catch (e) {
+          console.error(e);
+          alert("Error al guardar cliente. Verifica el RUT.");
+      }
+  };
+
   const filtered = clientes.filter(c => 
     c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    c.rut?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 relative">
       <div className="flex justify-between items-center border-b border-white/10 pb-4">
         <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <Users className="text-neon-purple" /> Base de Clientes
             </h2>
-            <p className="text-gray-400 text-sm">Gestiona tu cartera de clientes</p>
         </div>
-        <button className="bg-neon-purple/10 text-neon-purple border border-neon-purple hover:bg-neon-purple hover:text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2">
+        <button 
+            onClick={() => setShowModal(true)}
+            className="bg-neon-purple/10 text-neon-purple border border-neon-purple hover:bg-neon-purple hover:text-white font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2"
+        >
           <Plus size={18} /> Nuevo Cliente
         </button>
       </div>
@@ -55,7 +79,7 @@ const ClientsManager = () => {
         <Search className="absolute left-3 top-3 text-gray-500" size={20} />
         <input 
             type="text" 
-            placeholder="Buscar por nombre o correo..." 
+            placeholder="Buscar por nombre o RUT..." 
             className="w-full bg-cyber-gray border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white focus:border-neon-purple focus:outline-none transition-colors"
             onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -71,6 +95,7 @@ const ClientsManager = () => {
                     <button onClick={() => handleDelete(cliente.id)} className="text-gray-600 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1">{cliente.nombre}</h3>
+                <p className="text-xs text-gray-500 mb-2">RUT: {cliente.rut || cliente.run}</p>
                 
                 <div className="space-y-2 mt-4">
                     <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -83,6 +108,56 @@ const ClientsManager = () => {
             </div>
         ))}
       </div>
+
+      {/* MODAL DE CREACIÓN DE CLIENTE */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-cyber-gray border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl relative animate-in zoom-in-95 duration-200">
+                <button 
+                    onClick={() => setShowModal(false)}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                >
+                    <X size={24} />
+                </button>
+                
+                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                    <UserPlus className="text-neon-purple"/> Nuevo Cliente
+                </h2>
+
+                <form onSubmit={handleSave} className="space-y-4">
+                    <div>
+                        <label className="text-xs text-gray-400 uppercase">Nombre Completo</label>
+                        <input required type="text" className="w-full bg-black/50 border border-white/10 rounded p-2 text-white focus:border-neon-purple outline-none" 
+                            value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-gray-400 uppercase">RUT / DNI</label>
+                        <input required type="text" className="w-full bg-black/50 border border-white/10 rounded p-2 text-white focus:border-neon-purple outline-none" 
+                            value={formData.rut} onChange={e => setFormData({...formData, rut: e.target.value})}
+                            placeholder="Ej: 12.345.678-9"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-gray-400 uppercase">Email</label>
+                        <input type="email" className="w-full bg-black/50 border border-white/10 rounded p-2 text-white focus:border-neon-purple outline-none" 
+                            value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-gray-400 uppercase">Teléfono</label>
+                        <input type="text" className="w-full bg-black/50 border border-white/10 rounded p-2 text-white focus:border-neon-purple outline-none" 
+                            value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})}
+                        />
+                    </div>
+
+                    <button type="submit" className="w-full bg-neon-purple text-white font-bold py-3 rounded-lg hover:bg-purple-600 mt-4 flex justify-center items-center gap-2">
+                        <Save size={18} /> Guardar Cliente
+                    </button>
+                </form>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

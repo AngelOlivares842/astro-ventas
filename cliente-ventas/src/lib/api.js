@@ -53,5 +53,6 @@ export const saveProducto = (data, id = null) => id ? api.put(`/productos/${id}/
 export const getVentas = () => api.get('/ventas/');
 export const getClientes = () => api.get('/clientes/');
 export const deleteCliente = (id) => api.delete(`/clientes/${id}/`);
+export const saveCliente = (data) => api.post('/clientes/', data);
 
 export default api;
